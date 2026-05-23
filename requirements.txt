@@ -1,9 +1,9 @@
-streamlit
-streamlit-webrtc
-ultralytics
-opencv-python-headless
-av
-twilio
+streamlit==1.57.0
+streamlit-webrtc==0.71.0
+ultralytics==8.4.53
+opencv-python-headless==4.13.0.92
+av==16.1.0
+twilio==9.10.9
 torch
 torchvision
 numpy
