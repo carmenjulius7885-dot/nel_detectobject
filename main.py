@@ -9,10 +9,10 @@ import time
 # ==========================================
 # TWILIO CONFIGURATION
 # ==========================================
-TWILIO_ACCOUNT_SID = st.secrets["TWILIO_ACCOUNT_SID"]
-TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
-TWILIO_PHONE_NUMBER = st.secrets["TWILIO_PHONE_NUMBER"]
-YOUR_PHONE_NUMBER = st.secrets["YOUR_PHONE_NUMBER"]
+TWILIO_ACCOUNT_SID = st.secrets.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = st.secrets.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_PHONE_NUMBER = st.secrets.get("TWILIO_PHONE_NUMBER", "")
+YOUR_PHONE_NUMBER = st.secrets.get("YOUR_PHONE_NUMBER", "")
 
 # Send SMS Function
 def send_sms(message):
