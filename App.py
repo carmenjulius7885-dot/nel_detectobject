@@ -1,9 +1,38 @@
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 from ultralytics import YOLO
+from twilio.rest import Client
 import av
 import cv2
 import time
+
+# ==========================================
+# TWILIO CONFIGURATION
+# ==========================================
+TWILIO_ACCOUNT_SID = "YOUR_ACCOUNT_SID"
+TWILIO_AUTH_TOKEN = "YOUR_AUTH_TOKEN"
+TWILIO_PHONE_NUMBER = "YOUR_TWILIO_PHONE_NUMBER"
+YOUR_PHONE_NUMBER = "YOUR_PHONE_NUMBER"
+
+# Send SMS Function
+def send_sms(message):
+
+    try:
+        client = Client(
+            TWILIO_ACCOUNT_SID,
+            TWILIO_AUTH_TOKEN
+        )
+
+        client.messages.create(
+            body=message,
+            from_=TWILIO_PHONE_NUMBER,
+            to=YOUR_PHONE_NUMBER
+        )
+
+        print("SMS Sent Successfully")
+
+    except Exception as e:
+        print("SMS Error:", e)
 
 # ==========================================
 # LOAD YOLO MODEL
@@ -46,6 +75,19 @@ confidence = st.sidebar.slider(
 )
 
 # ==========================================
+# TWILIO SETTINGS
+# ==========================================
+enable_sms = st.sidebar.checkbox(
+    "Enable Twilio SMS Alert",
+    False
+)
+
+detect_object = st.sidebar.text_input(
+    "Send Alert If Object Detected",
+    "person"
+)
+
+# ==========================================
 # SHOW DETECTABLE OBJECTS
 # ==========================================
 with st.expander("📦 Detectable Objects"):
@@ -58,6 +100,7 @@ class VideoProcessor(VideoTransformerBase):
 
     def __init__(self):
         self.prev_time = time.time()
+        self.last_alert_time = 0
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
 
@@ -145,6 +188,24 @@ class VideoProcessor(VideoTransformerBase):
                             color,
                             2
                         )
+
+                    # ==========================================
+                    # TWILIO SMS ALERT
+                    # ==========================================
+                    if enable_sms:
+
+                        if label.lower() == detect_object.lower():
+
+                            current_time = time.time()
+
+                            # Prevent spam messages
+                            if current_time - self.last_alert_time > 20:
+
+                                send_sms(
+                                    f"⚠️ ALERT: {label} detected!"
+                                )
+
+                                self.last_alert_time = current_time
 
         # ==========================================
         # FPS COUNTER
