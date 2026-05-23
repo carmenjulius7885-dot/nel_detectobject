@@ -9,12 +9,18 @@ import time
 # ==========================================
 # TWILIO CONFIGURATION
 # ==========================================
-TWILIO_ACCOUNT_SID="ACb5427f0e90982c2858987897cde4611b"
-TWILIO_AUTH_TOKEN="2e75fafa148c5335bb380eb58836e9a5"
-TWILIO_PHONE_NUMBER="+123456789"
-YOUR_PHONE_NUMBER="+639467044199"
+TWILIO_ACCOUNT_SID = "YOUR_ACCOUNT_SID"
+TWILIO_AUTH_TOKEN = "YOUR_AUTH_TOKEN"
 
-# Send SMS Function
+# Your REAL Twilio number
+TWILIO_PHONE_NUMBER = "+1XXXXXXXXXX"
+
+# Your personal phone number
+YOUR_PHONE_NUMBER = "+639XXXXXXXXX"
+
+# ==========================================
+# SEND SMS FUNCTION
+# ==========================================
 def send_sms(message):
 
     try:
@@ -39,7 +45,6 @@ def send_sms(message):
 # ==========================================
 @st.cache_resource
 def load_model():
-    # Better accuracy than yolov8n
     return YOLO("yolov8s.pt")
 
 model = load_model()
@@ -104,31 +109,26 @@ class VideoProcessor(VideoTransformerBase):
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
 
-        # Convert frame to OpenCV format
         img = frame.to_ndarray(format="bgr24")
 
         # ==========================================
-        # YOLO TRACKING
+        # YOLO DETECTION + TRACKING
         # ==========================================
         results = model.track(
             img,
             persist=True,
             tracker="bytetrack.yaml",
             conf=confidence,
-            iou=0.5,
             verbose=False
         )
 
         annotated = img.copy()
 
-        # ==========================================
-        # DRAW RESULTS
-        # ==========================================
         if results and len(results) > 0:
 
             result = results[0]
 
-            if result.boxes is not None and len(result.boxes) > 0:
+            if result.boxes is not None:
 
                 boxes = result.boxes.xyxy.cpu().numpy()
                 classes = result.boxes.cls.cpu().numpy()
@@ -146,18 +146,16 @@ class VideoProcessor(VideoTransformerBase):
                     class_id = int(classes[i])
                     label = model.names[class_id]
 
-                    # Tracking ID
                     track_id = (
                         int(ids[i])
                         if ids is not None
                         else -1
                     )
 
-                    # Green color
                     color = (0, 255, 0)
 
                     # ==========================================
-                    # DRAW BOUNDING BOX
+                    # DRAW BOX
                     # ==========================================
                     if show_boxes:
 
@@ -170,14 +168,15 @@ class VideoProcessor(VideoTransformerBase):
                         )
 
                     # ==========================================
-                    # DRAW LABEL + ID
+                    # DRAW LABEL
                     # ==========================================
                     if show_labels:
 
-                        if track_id >= 0:
-                            text = f"{label} ID:{track_id}"
-                        else:
-                            text = label
+                        text = (
+                            f"{label} ID:{track_id}"
+                            if track_id >= 0
+                            else label
+                        )
 
                         cv2.putText(
                             annotated,
@@ -190,7 +189,7 @@ class VideoProcessor(VideoTransformerBase):
                         )
 
                     # ==========================================
-                    # TWILIO SMS ALERT
+                    # SEND TWILIO ALERT
                     # ==========================================
                     if enable_sms:
 
@@ -228,7 +227,6 @@ class VideoProcessor(VideoTransformerBase):
                 2
             )
 
-        # Return processed frame
         return av.VideoFrame.from_ndarray(
             annotated,
             format="bgr24"
@@ -243,6 +241,15 @@ webrtc_streamer(
     media_stream_constraints={
         "video": True,
         "audio": False
+    },
+    rtc_configuration={
+        "iceServers": [
+            {
+                "urls": [
+                    "stun:stun.l.google.com:19302"
+                ]
+            }
+        ]
     },
     async_processing=True,
 )
